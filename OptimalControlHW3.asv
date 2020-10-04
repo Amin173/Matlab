@@ -1,0 +1,192 @@
+%% Problem 1
+clc; clear
+nx = 3; nu = 1; ny = 3; % nx, nu, and ny are the dimensions of state, control and output vector respectively
+A = [0 1 0; 0 0 1; 0.1 0.3 0.4];
+B = [1;0;1];
+C = eye(3);
+Q = 5*eye(nx); R = 10*eye(nu);
+P = 10*eye(nx);
+umin = -1;umax = 1; ymin = -10; ymax = 10; N = 10;
+for i = 0:N-1
+    if i<(N-1)
+        Omega((i*size(Q,1)+1):((i+1)*size(Q,1)), (i*size(Q,2)+1):((i+1)*size(Q,2))) = Q;
+    else
+        Omega(((N-1)*size(Q,1)+1):((N-1)*size(Q,1))+size(P,1), ((N-1)*size(Q,2)+1):((N-1)*size(Q,2))+size(P,2)) = P;
+    end
+    Sai((i*size(R,1)+1):((i+1)*size(R,1)), (i*size(R,2)+1):((i+1)*size(R,2))) = R;
+    AB((i*size(B,1)+1):((i+1)*size(B,1)), 1:size(B,2))=(A^i)*B;
+    Phi((i*size(A,1)+1):((i+1)*size(A,1)), 1:size(A,2))=(A^i);
+end
+for i=0:N-1
+    Gamma(i*size(B,1)+1:N*size(B,1), i*size(AB,2)+1:(i+1)*size(AB,2)) = AB(1:(N-i)*size(B,1),:);
+end
+G = 2* (Sai+Gamma'*Omega*Gamma);
+F = 2*Gamma'*Omega*Phi;
+x0 = [1;2;1];
+
+
+E = [1 ;0 ; zeros(6,1)];
+M = [ 0 0 0; 0 0 0;eye(3);-eye(3)];
+b = [umax;-umin;ymax;ymax;ymax;-ymin;-ymin;-ymin];
+Cbar = [];
+D = M;
+Mbar =zeros((N+1)*size(M,1), N*size(M,2));
+Sigma =zeros((N+1)*size(E,1), N*size(E,2));
+for i = 0:N
+    Cbar = [b; Cbar];
+    if i >0
+        D = [D;0*M];
+        Mbar(size(M,1)*(i-1)+1:size(M,1)*(i), size(M,2)*(i-1)+1:size(M,2)*(i)) = M;
+    end
+    if i<N
+        Sigma(size(E,1)*i+1:size(E,1)*(i+1), size(E,2)*i+1:size(E,2)*(i+1)) =E;
+    end
+end
+w = -(Mbar*Phi + D);
+S = Mbar*Gamma + Sigma;
+res = quadprog(G,F*x0,S,Cbar+w*x0);
+%% Problem 2 (a)
+clc
+clear
+E = [1 0 1 0 0; 0 0 1 0 -.0423;0 0 -.106 0 1; 
+    0 0 0 1 0; 0 1 0 0 0];
+A = [-.0297 0 0 .0438 0;
+    .379 0 -.0096 0 -.0125;
+    -1.17 0 .129 0 -.79;
+    0 0 0 0 1;
+    0 0 1 0 0];
+dr = 1;
+da = 1;
+phi0 = 1;
+e0 =1;
+u = [dr;da];
+B = [0 0;
+    1 0;
+    0 1;
+    0 0;
+    0 0];
+
+r_0 = 1;  a_0= 1; e_0=1; phi_0 = 1;
+R = [1/a_0^2 0; 0 1/r_0^2];
+Q=[1/e_0^2 0 0 0 1/e_0^2; 0 0 0 0 0; 0 0 0 0 0; 0 0 0 1/phi_0^2 0;1/e_0^2 0 0 0 1/e_0^2];
+x0 = [0;0.1;0.2;0;0]; % initial state
+P = 0 * eye(length(x0));
+
+dt = 0.1;
+n = 100;
+A = inv(E) * A;
+B = inv(E) * B;
+
+sysOpenLoop = ss(A,B,eye(length(x0)), 0*B);
+EA = eig(sysOpenLoop.A);
+plot(real(EA),imag(EA),'rx', 'LineWidth)
+viscircles([0,0],1,'Color','b')
+axis equal
+title('Open loop system eigenvalues')
+%% (b)
+N =2;
+clear Omega Sai AB Phi Gamma G F K
+for i = 0:N-1
+    if i<(N-1)
+        Omega((i*size(Q,1)+1):((i+1)*size(Q,1)), (i*size(Q,2)+1):((i+1)*size(Q,2))) = Q;
+    else
+        Omega(((N-1)*size(Q,1)+1):((N-1)*size(Q,1))+size(P,1), ((N-1)*size(Q,2)+1):((N-1)*size(Q,2))+size(P,2)) = P;
+    end
+    Sai((i*size(R,1)+1):((i+1)*size(R,1)), (i*size(R,2)+1):((i+1)*size(R,2))) = R;
+    AB((i*size(B,1)+1):((i+1)*size(B,1)), 1:size(B,2))=(A^i)*B;
+    Phi((i*size(A,1)+1):((i+1)*size(A,1)), 1:size(A,2))=(A^i);
+end
+for i=0:N-1
+    Gamma(i*size(B,1)+1:N*size(B,1), i*size(AB,2)+1:(i+1)*size(AB,2)) = AB(1:(N-i)*size(B,1),:);
+end
+G = 2* (Sai+Gamma'*Omega*Gamma);
+F = 2*Gamma'*Omega*Phi;
+K = -G\F;
+KRHC = K(1:2,:);
+
+sysClosedLoop = feedback(sysOpenLoop,KRHC);
+EA = eig(sysClosedLoop.A);
+plot(real(EA),imag(EA),'rx')
+viscircles([0,0],1,'Color','b')
+axis equal
+title('Closed loop system eigenvalues N =2')
+
+%% 
+N =10;
+clear Omega Sai AB Phi Gamma G F K
+for i = 0:N-1
+    if i<(N-1)
+        Omega((i*size(Q,1)+1):((i+1)*size(Q,1)), (i*size(Q,2)+1):((i+1)*size(Q,2))) = Q;
+    else
+        Omega(((N-1)*size(Q,1)+1):((N-1)*size(Q,1))+size(P,1), ((N-1)*size(Q,2)+1):((N-1)*size(Q,2))+size(P,2)) = P;
+    end
+    Sai((i*size(R,1)+1):((i+1)*size(R,1)), (i*size(R,2)+1):((i+1)*size(R,2))) = R;
+    AB((i*size(B,1)+1):((i+1)*size(B,1)), 1:size(B,2))=(A^i)*B;
+    Phi((i*size(A,1)+1):((i+1)*size(A,1)), 1:size(A,2))=(A^i);
+end
+for i=0:N-1
+    Gamma(i*size(B,1)+1:N*size(B,1), i*size(AB,2)+1:(i+1)*size(AB,2)) = AB(1:(N-i)*size(B,1),:);
+end
+
+G = 2* (Sai+Gamma'*Omega*Gamma);
+F = 2*Gamma'*Omega*Phi;
+K = -G\F;
+KRHC = K(1:2,:);
+x = x0;
+for i= 1:size(K,1)/2
+    u = K(2*i-1:2*i, :)*x;
+    x = A*x+B*u;
+    da(i) = u(1);
+    dr(i) = u(2);
+end
+da_max = max(da);
+dr_max = max(dr);
+sysClosedLoop = feedback(sysOpenLoop,KRHC);
+EA = eig(sysClosedLoop.A);
+plot(real(EA),imag(EA),'rx')
+viscircles([0,0],1,'Color','b')
+axis equal
+%% (d)
+E = [1 0;0 1; -1 0; 0 -1];
+M = zeros(size(E,1),length(x0));
+b = 0.5 * [da_max;dr_max;da_max;dr_max];
+Cbar = [];
+D = M;
+Mbar =zeros((N+1)*size(M,1), N*size(M,2));
+Sigma =zeros((N+1)*size(E,1), N*size(E,2));
+for i = 0:N
+    Cbar = [b; Cbar];
+    if i >0
+        D = [D;0*M];
+        Mbar(size(M,1)*(i-1)+1:size(M,1)*(i), size(M,2)*(i-1)+1:size(M,2)*(i)) = M;
+    end
+    if i<N
+        Sigma(size(E,1)*i+1:size(E,1)*(i+1), size(E,2)*i+1:size(E,2)*(i+1)) =E;
+    end
+end
+w = -(Mbar*Phi + D);
+S = Mbar*Gamma + Sigma;
+res = quadprog(G,F*x0,S,Cbar+w*x0);
+%% (e)
+% E = [1 0;0 1; -1 0; 0 -1; 0 0; 0 0; 0 0; 0 0; 0 0];
+E = zeros(9 , 2);
+M = [zeros(4,length(x0));0 1 0 0 0; 0 -1 0 0 0; 0 0 0 0 0; 0 0 0 0 0; 0 0 0 0 0];
+% b = 0.5 * [da_max;dr_max;da_max;dr_max;0.04;0.04; 0; 0 ; 0];
+b = 0.5 * [0 ; 0 ; 0; 0; 0.04;0.04; 0; 0 ; 0];
+Cbar = [];
+D = M;
+Mbar =zeros((N+1)*size(M,1), N*size(M,2));
+Sigma =zeros((N+1)*size(E,1), N*size(E,2));
+for i = 0:N
+    Cbar = [b; Cbar];
+    if i >0
+        D = [D;0*M];
+        Mbar(size(M,1)*(i-1)+1:size(M,1)*(i), size(M,2)*(i-1)+1:size(M,2)*(i)) = M;
+    end
+    if i<N
+        Sigma(size(E,1)*i+1:size(E,1)*(i+1), size(E,2)*i+1:size(E,2)*(i+1)) =E;
+    end
+end
+w = -(Mbar*Phi + D);
+S = Mbar*Gamma + Sigma;
+res = quadprog(G,F*x0,S,Cbar+w*x0);

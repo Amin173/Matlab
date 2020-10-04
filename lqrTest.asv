@@ -1,0 +1,18 @@
+clc; clear;
+t = zeros(1, 12);
+t(1:6) = pi;
+
+A = eye(2);
+B = [cos(t) ; sin(t)];
+Q = zeros(2);
+N = 0 * B;
+
+R = zeros(12);
+R(1, [3, 2]) = 1;
+R(end, [end-1, 1]) = 1;
+for i= 2:length(t)-1
+    R(i, i-1) = 2;
+    R(i, i+1) = 2;
+end
+
+[K,S,e] = dlqr(A,B,Q,R,N)

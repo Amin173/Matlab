@@ -1,0 +1,13 @@
+clc
+clear
+rb=18*0.0254;
+Ab=pi*rb^2;
+h=0.067;
+Vb=Ab*h;
+n=5;
+Ac=pi*(0.0254)^2;
+Vc=n*Ac*h;
+Vt=Vb-Vc;
+rp=0.001;
+vp=4/3*(pi*rp^3);
+N=Vt/vp
