@@ -1,0 +1,14 @@
+rp = 0.005;
+n =12;
+l = 7*0.0254;
+rt = 3*0.0254/2;
+rb = 2.25*0.0254/2;
+hb = 0.035;
+Vp = (4/3) * pi * rp ^ 3;
+b = hb/2;
+a = (2*rt^2 - b^2)^0.5;
+% p_accurate = 2*pi*rt
+% p_approximation = 2*pi*sqrt((a^2+b^2)/2);
+Vt = n* (l * pi * a * b - pi*rb^2*hb);
+pf = 0.1;
+Np = pf*Vt/Vp
